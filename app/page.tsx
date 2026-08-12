@@ -101,7 +101,7 @@ export default function Home() {
       <header className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Fisio-TRQ" className="w-11 h-11 object-contain" />
+            <img src="/logo.jpg" alt="Fisio-TRQ" className="w-11 h-11 object-contain" />
             <div>
               <h1 className="text-lg font-bold text-emerald-700">Fisio-TRQ</h1>
               <p className="text-xs text-gray-500">Terapia Física y Quiropraxia</p>
