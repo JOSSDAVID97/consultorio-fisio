@@ -79,18 +79,44 @@ export default function Home() {
     setHoraSeleccionada("")
   }
 
-  // Horarios del día seleccionado (bloques de 1 hora)
-  const horariosDelDia = horarios.filter(h => h.fecha === diaSeleccionado)
+  async function solicitarCita(e: React.FormEvent) {
+  e.preventDefault()
+  if (!diaSeleccionado || !horaSeleccionada) return
 
-  function solicitarCita(e: React.FormEvent) {
-    e.preventDefault()
-    if (!diaSeleccionado || !horaSeleccionada) return
+  setMensaje("Procesando...")
 
-    const texto = `Hola, quiero agendar una cita:%0A%0A*Nombre:* ${nombre}%0A*Teléfono:* ${telefono}%0A*Fecha:* ${diaSeleccionado}%0A*Hora:* ${horaSeleccionada}%0A*Motivo:* ${motivo}`
+  // Buscar el horario exacto
+  const horario = horarios.find(
+    (h) => h.fecha === diaSeleccionado && h.hora_inicio?.slice(0, 5) === horaSeleccionada
+  )
 
-    window.open(`https://wa.me/525620251984?text=${texto}`, "_blank")
-    setMensaje("Se abrió WhatsApp. Envía el mensaje para confirmar tu cita.")
+  if (!horario) {
+    setMensaje("Ese horario ya no está disponible")
+    return
   }
+
+  // Marcar el horario como no disponible
+  const { error } = await supabase
+    .from("horarios_disponibles")
+    .update({ disponible: false })
+    .eq("id", horario.id)
+
+  if (error) {
+    setMensaje("Error al reservar. Intenta de nuevo.")
+    return
+  }
+
+  // Abrir WhatsApp
+  const texto = `Hola, quiero agendar una cita:%0A%0A*Nombre:* ${nombre}%0A*Teléfono:* ${telefono}%0A*Fecha:* ${diaSeleccionado}%0A*Hora:* ${horaSeleccionada}%0A*Motivo:* ${motivo}`
+
+  window.open(`https://wa.me/525620251984?text=${texto}`, "_blank")
+
+  setMensaje("¡Horario reservado! Se abrió WhatsApp para que envíes el mensaje y confirmes.")
+  
+  // Quitar el horario de la lista local
+  setHorarios(prev => prev.filter(h => h.id !== horario.id))
+  setHoraSeleccionada("")
+}
 
   const nombresMes = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
   const diasSemana = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"]
