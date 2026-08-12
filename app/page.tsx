@@ -5,11 +5,14 @@ import { createClient } from "@/lib/supabase"
 
 export default function Home() {
   const [horarios, setHorarios] = useState<any[]>([])
-  const [horarioId, setHorarioId] = useState("")
+  const [diasDisponibles, setDiasDisponibles] = useState<string[]>([])
+  const [diaSeleccionado, setDiaSeleccionado] = useState("")
+  const [horaSeleccionada, setHoraSeleccionada] = useState("")
   const [nombre, setNombre] = useState("")
   const [telefono, setTelefono] = useState("")
   const [motivo, setMotivo] = useState("")
   const [mensaje, setMensaje] = useState("")
+  const [mesActual, setMesActual] = useState(new Date())
 
   const supabase = createClient()
 
@@ -24,21 +27,73 @@ export default function Home() {
         .order("fecha")
         .order("hora_inicio")
 
-      if (data) setHorarios(data)
+      if (data) {
+        setHorarios(data)
+        const dias = [...new Set(data.map((h: any) => h.fecha))]
+        setDiasDisponibles(dias)
+      }
     }
     cargarHorarios()
   }, [])
 
+  // Generar días del mes para el calendario
+  function generarDiasDelMes() {
+    const year = mesActual.getFullYear()
+    const month = mesActual.getMonth()
+    const primerDia = new Date(year, month, 1)
+    const ultimoDia = new Date(year, month + 1, 0)
+    const diasEnMes = ultimoDia.getDate()
+    const diaSemanaInicio = primerDia.getDay() // 0 = domingo
+
+    const dias: (number | null)[] = []
+
+    // Espacios vacíos al inicio
+    for (let i = 0; i < diaSemanaInicio; i++) {
+      dias.push(null)
+    }
+
+    // Días del mes
+    for (let d = 1; d <= diasEnMes; d++) {
+      dias.push(d)
+    }
+
+    return dias
+  }
+
+  function formatoFecha(dia: number) {
+    const year = mesActual.getFullYear()
+    const month = String(mesActual.getMonth() + 1).padStart(2, "0")
+    const day = String(dia).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
+  function mesAnterior() {
+    setMesActual(new Date(mesActual.getFullYear(), mesActual.getMonth() - 1, 1))
+    setDiaSeleccionado("")
+    setHoraSeleccionada("")
+  }
+
+  function mesSiguiente() {
+    setMesActual(new Date(mesActual.getFullYear(), mesActual.getMonth() + 1, 1))
+    setDiaSeleccionado("")
+    setHoraSeleccionada("")
+  }
+
+  // Horarios del día seleccionado (bloques de 1 hora)
+  const horariosDelDia = horarios.filter(h => h.fecha === diaSeleccionado)
+
   function solicitarCita(e: React.FormEvent) {
     e.preventDefault()
-    const horario = horarios.find(h => h.id === horarioId)
-    if (!horario) return
+    if (!diaSeleccionado || !horaSeleccionada) return
 
-    const texto = `Hola, quiero agendar una cita:%0A%0A*Nombre:* ${nombre}%0A*Teléfono:* ${telefono}%0A*Fecha:* ${horario.fecha}%0A*Hora:* ${horario.hora_inicio?.slice(0,5)}%0A*Motivo:* ${motivo}`
+    const texto = `Hola, quiero agendar una cita:%0A%0A*Nombre:* ${nombre}%0A*Teléfono:* ${telefono}%0A*Fecha:* ${diaSeleccionado}%0A*Hora:* ${horaSeleccionada}%0A*Motivo:* ${motivo}`
 
     window.open(`https://wa.me/525620251984?text=${texto}`, "_blank")
     setMensaje("Se abrió WhatsApp. Envía el mensaje para confirmar tu cita.")
   }
+
+  const nombresMes = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+  const diasSemana = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"]
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -59,122 +114,150 @@ export default function Home() {
       </header>
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-4 py-12 md:py-16 text-center">
+      <section className="max-w-5xl mx-auto px-4 py-12 text-center">
         <p className="text-emerald-600 font-medium mb-2 text-sm">Fisioterapia en Rehabilitación</p>
-        <h2 className="text-3xl md:text-5xl font-bold text-gray-800 mb-4 leading-tight">
-          Recuperación profesional<br />y cercana
+        <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+          Recuperación profesional y cercana
         </h2>
-        <p className="text-gray-600 mb-8 max-w-xl mx-auto">
-          Tratamientos personalizados de fisioterapia y quiropraxia para aliviar el dolor y recuperar tu movilidad.
+        <p className="text-gray-600 mb-6 max-w-xl mx-auto text-sm md:text-base">
+          Tratamientos personalizados de fisioterapia y quiropraxia.
         </p>
-        <a href="#reservar" className="inline-block bg-emerald-600 text-white px-8 py-3.5 rounded-xl text-lg font-medium shadow-lg shadow-emerald-200">
+        <a href="#reservar" className="inline-block bg-emerald-600 text-white px-7 py-3 rounded-xl font-medium shadow-lg shadow-emerald-200">
           Reservar mi cita
         </a>
       </section>
 
       {/* Terapeuta */}
-      <section className="max-w-5xl mx-auto px-4 pb-10">
-        <div className="bg-white rounded-2xl shadow-sm border p-5 md:p-6 flex flex-col sm:flex-row gap-5 items-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-700 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shrink-0">
+      <section className="max-w-5xl mx-auto px-4 pb-8">
+        <div className="bg-white rounded-2xl shadow-sm border p-5 flex gap-4 items-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-700 rounded-xl flex items-center justify-center text-white text-xl font-bold shrink-0">
             TG
           </div>
-          <div className="text-center sm:text-left">
-            <h3 className="text-lg font-bold text-gray-800">Tadeo García Estrada</h3>
-            <p className="text-emerald-600 font-medium text-sm">Fisioterapeuta</p>
-            <p className="text-gray-500 text-sm mt-1">Cédula Profesional: 36349</p>
+          <div>
+            <h3 className="font-bold text-gray-800">Tadeo García Estrada</h3>
+            <p className="text-emerald-600 text-sm">Fisioterapeuta · Cédula 36349</p>
           </div>
         </div>
       </section>
 
-      {/* Servicios */}
-      <section className="max-w-5xl mx-auto px-4 pb-12">
-        <h3 className="text-xl font-bold text-center mb-6 text-gray-800">Nuestros servicios</h3>
-        <div className="grid sm:grid-cols-3 gap-4">
-          {[
-            { titulo: "Terapia Manual", desc: "Técnicas para aliviar dolores musculares y articulares." },
-            { titulo: "Rehabilitación", desc: "Programas personalizados después de lesiones o cirugías." },
-            { titulo: "Ejercicios en casa", desc: "Rutinas guiadas para continuar tu recuperación." }
-          ].map((s) => (
-            <div key={s.titulo} className="bg-white p-5 rounded-xl shadow-sm border">
-              <h4 className="font-semibold mb-1">{s.titulo}</h4>
-              <p className="text-gray-600 text-sm">{s.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Reservar cita */}
+      {/* Reservar */}
       <section id="reservar" className="max-w-lg mx-auto px-4 pb-16">
-        <div className="bg-white p-6 rounded-2xl shadow-md border">
+        <div className="bg-white p-5 rounded-2xl shadow-md border">
           <h3 className="text-xl font-bold text-center mb-1 text-gray-800">Reservar cita</h3>
-          <p className="text-center text-gray-500 text-sm mb-5">
-            Elige un horario disponible
-          </p>
+          <p className="text-center text-gray-500 text-sm mb-5">Selecciona un día disponible</p>
 
-          {horarios.length === 0 ? (
-            <p className="text-center text-gray-500 text-sm py-4">
-              No hay horarios disponibles por el momento. Escríbenos por WhatsApp.
-            </p>
-          ) : (
-            <form onSubmit={solicitarCita} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Horario</label>
-                <select
-                  required
-                  value={horarioId}
-                  onChange={(e) => setHorarioId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                >
-                  <option value="">Selecciona fecha y hora</option>
-                  {horarios.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.fecha} · {h.hora_inicio?.slice(0,5)} - {h.hora_fin?.slice(0,5)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Calendario */}
+          <div className="mb-5">
+            <div className="flex justify-between items-center mb-3">
+              <button onClick={mesAnterior} className="px-3 py-1 text-sm border rounded-lg">←</button>
+              <span className="font-medium text-gray-800">
+                {nombresMes[mesActual.getMonth()]} {mesActual.getFullYear()}
+              </span>
+              <button onClick={mesSiguiente} className="px-3 py-1 text-sm border rounded-lg">→</button>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
-                <input
-                  type="text"
-                  required
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                  placeholder="Tu nombre"
-                />
-              </div>
+            <div className="grid grid-cols-7 gap-1 text-center text-xs mb-1">
+              {diasSemana.map(d => (
+                <div key={d} className="py-1 text-gray-500 font-medium">{d}</div>
+              ))}
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
-                <input
-                  type="tel"
-                  required
-                  value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                  placeholder="55 1234 5678"
-                />
-              </div>
+            <div className="grid grid-cols-7 gap-1">
+              {generarDiasDelMes().map((dia, i) => {
+                if (dia === null) return <div key={i} />
+                const fecha = formatoFecha(dia)
+                const disponible = diasDisponibles.includes(fecha)
+                const seleccionado = diaSeleccionado === fecha
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Motivo de consulta</label>
-                <textarea
-                  required
-                  value={motivo}
-                  onChange={(e) => setMotivo(e.target.value)}
-                  rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                  placeholder="Describe brevemente tu molestia..."
-                />
-              </div>
+                return (
+                  <button
+                    key={i}
+                    disabled={!disponible}
+                    onClick={() => {
+                      setDiaSeleccionado(fecha)
+                      setHoraSeleccionada("")
+                    }}
+                    className={`
+                      py-2 rounded-lg text-sm font-medium transition
+                      ${seleccionado ? "bg-emerald-600 text-white" : ""}
+                      ${disponible && !seleccionado ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200" : ""}
+                      ${!disponible ? "text-gray-300 cursor-not-allowed" : ""}
+                    `}
+                  >
+                    {dia}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
+          {/* Horarios del día */}
+          {diaSeleccionado && (
+            <div className="mb-5">
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                Horarios disponibles el {diaSeleccionado}:
+              </p>
+              {horariosDelDia.length === 0 ? (
+                <p className="text-sm text-gray-500">No hay horarios este día.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {horariosDelDia.map((h) => {
+                    const hora = h.hora_inicio?.slice(0, 5)
+                    const seleccionado = horaSeleccionada === hora
+                    return (
+                      <button
+                        key={h.id}
+                        type="button"
+                        onClick={() => setHoraSeleccionada(hora)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition
+                          ${seleccionado ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-700 hover:border-emerald-400"}
+                        `}
+                      >
+                        {hora}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Formulario de datos */}
+          {horaSeleccionada && (
+            <form onSubmit={solicitarCita} className="space-y-3 border-t pt-4">
+              <p className="text-sm text-emerald-700 font-medium">
+                Cita: {diaSeleccionado} a las {horaSeleccionada}
+              </p>
+
+              <input
+                type="text"
+                required
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Tu nombre completo"
+                className="w-full border rounded-lg px-3 py-2.5 text-sm"
+              />
+              <input
+                type="tel"
+                required
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                placeholder="WhatsApp"
+                className="w-full border rounded-lg px-3 py-2.5 text-sm"
+              />
+              <textarea
+                required
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                rows={2}
+                placeholder="Motivo de consulta"
+                className="w-full border rounded-lg px-3 py-2.5 text-sm"
+              />
               <button
                 type="submit"
-                className="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-medium hover:bg-emerald-700 transition"
+                className="w-full bg-emerald-600 text-white py-3 rounded-xl font-medium"
               >
-                Solicitar cita por WhatsApp
+                Confirmar por WhatsApp
               </button>
             </form>
           )}
