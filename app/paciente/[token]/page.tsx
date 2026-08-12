@@ -92,7 +92,7 @@ export default function PacientePortal() {
     <main className="min-h-screen bg-gradient-to-b from-emerald-50 to-white pb-10">
       <header className="bg-emerald-700 text-white sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
-          <img src="/logo.png" alt="Fisio-TRQ" className="w-10 h-10 object-contain bg-white rounded-full p-1" />
+          <img src="/logo.jpg" alt="Fisio-TRQ" className="w-10 h-10 object-contain bg-white rounded-full p-1" />
           <div>
             <h1 className="text-lg font-bold">Fisio-TRQ</h1>
             <p className="text-emerald-200 text-xs">Portal del paciente</p>
