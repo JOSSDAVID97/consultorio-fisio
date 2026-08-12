@@ -79,7 +79,7 @@ export default function Home() {
     setHoraSeleccionada("")
   }
 
-  async function solicitarCita(e: React.FormEvent) {
+ async function solicitarCita(e: React.FormEvent) {
   e.preventDefault()
   if (!diaSeleccionado || !horaSeleccionada) return
 
@@ -95,27 +95,40 @@ export default function Home() {
     return
   }
 
-  // Marcar el horario como no disponible
-  const { error } = await supabase
+  // 1. Marcar el horario como no disponible
+  const { error: errorHorario } = await supabase
     .from("horarios_disponibles")
     .update({ disponible: false })
     .eq("id", horario.id)
 
-  if (error) {
+  if (errorHorario) {
     setMensaje("Error al reservar. Intenta de nuevo.")
     return
   }
 
-  // Abrir WhatsApp
+  // 2. Crear la cita automáticamente
+  await supabase.from("citas").insert([
+    {
+      fecha: diaSeleccionado,
+      hora: horaSeleccionada + ":00",
+      notas: `Cliente nuevo: ${nombre} | Tel: ${telefono} | Motivo: ${motivo}`,
+      estado: "programada"
+    }
+  ])
+
+  // 3. Abrir WhatsApp
   const texto = `Hola, quiero agendar una cita:%0A%0A*Nombre:* ${nombre}%0A*Teléfono:* ${telefono}%0A*Fecha:* ${diaSeleccionado}%0A*Hora:* ${horaSeleccionada}%0A*Motivo:* ${motivo}`
 
   window.open(`https://wa.me/525620251984?text=${texto}`, "_blank")
 
-  setMensaje("¡Horario reservado! Se abrió WhatsApp para que envíes el mensaje y confirmes.")
-  
-  // Quitar el horario de la lista local
+  setMensaje("¡Cita reservada! Se abrió WhatsApp para que envíes el mensaje y confirmes.")
+
+  // Actualizar lista local
   setHorarios(prev => prev.filter(h => h.id !== horario.id))
   setHoraSeleccionada("")
+  setNombre("")
+  setTelefono("")
+  setMotivo("")
 }
 
   const nombresMes = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
