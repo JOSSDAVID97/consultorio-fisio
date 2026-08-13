@@ -81,21 +81,43 @@ export default function CitasPage() {
   }
 
   function agregarAlCalendario(cita: any) {
-    const titulo = "Cita Fisio-TRQ"
-    const descripcion = cita.notas || "Cita de fisioterapia"
-    const fecha = cita.fecha
-    const hora = cita.hora?.slice(0, 5) || "12:00"
+  const titulo = "Cita Fisio-TRQ"
+  const descripcion = cita.notas || "Cita de fisioterapia"
+  const fecha = cita.fecha
+  const hora = cita.hora?.slice(0, 5) || "12:00"
 
-    const inicio = new Date(`${fecha}T${hora}:00`)
-    const fin = new Date(inicio.getTime() + 60 * 60 * 1000)
+  const [year, month, day] = fecha.split("-")
+  const [h, m] = hora.split(":")
 
-    const formatDate = (d: Date) => {
-      return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
-    }
+  const inicio = `${year}${month}${day}T${h}${m}00`
+  
+  // Fin = 1 hora después
+  const finHora = String(Number(h) + 1).padStart(2, "0")
+  const fin = `${year}${month}${day}T${finHora}${m}00`
 
-    const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titulo)}&dates=${formatDate(inicio)}/${formatDate(fin)}&details=${encodeURIComponent(descripcion)}`
-    window.open(url, "_blank")
-  }
+  const icsContent = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "BEGIN:VEVENT",
+    `DTSTART:${inicio}`,
+    `DTEND:${fin}`,
+    `SUMMARY:${titulo}`,
+    `DESCRIPTION:${descripcion}`,
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].join("\n")
+
+  const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  
+  const link = document.createElement("a")
+  link.href = url
+  link.download = `cita-fisio-${fecha}.ics`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
 
   const programadas = citas.filter(c => c.estado === "programada")
   const otras = citas.filter(c => c.estado !== "programada")
