@@ -133,6 +133,7 @@ export default function Home() {
 
   const nombresMes = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
   const diasSemana = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sa"]
+  const horariosDelDia = horarios.filter(h => h.fecha === diaSeleccionado)
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -229,6 +230,7 @@ export default function Home() {
               })}
             </div>
           </div>
+
 
           {/* Horarios del día */}
           {diaSeleccionado && (
