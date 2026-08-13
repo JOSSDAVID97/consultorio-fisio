@@ -5,47 +5,95 @@ import { createClient } from "@/lib/supabase"
 
 export default function CitasPage() {
   const [citas, setCitas] = useState<any[]>([])
+  const [pacientes, setPacientes] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
+  const [mostrarForm, setMostrarForm] = useState(false)
+
+  // Formulario
+  const [pacienteId, setPacienteId] = useState("")
+  const [fecha, setFecha] = useState("")
+  const [hora, setHora] = useState("")
+  const [notas, setNotas] = useState("")
+  const [mensaje, setMensaje] = useState("")
+  const [guardando, setGuardando] = useState(false)
 
   const supabase = createClient()
 
-  async function cargarCitas() {
-    const { data } = await supabase
+  async function cargarDatos() {
+    const { data: dataCitas } = await supabase
       .from("citas")
       .select("*")
       .order("fecha", { ascending: true })
       .order("hora", { ascending: true })
 
-    if (data) setCitas(data)
+    const { data: dataPacientes } = await supabase
+      .from("pacientes")
+      .select("id, nombre")
+      .eq("activo", true)
+      .order("nombre")
+
+    if (dataCitas) setCitas(dataCitas)
+    if (dataPacientes) setPacientes(dataPacientes)
     setCargando(false)
   }
 
   useEffect(() => {
-    cargarCitas()
+    cargarDatos()
   }, [])
+
+  async function crearCita(e: React.FormEvent) {
+    e.preventDefault()
+    setGuardando(true)
+    setMensaje("")
+
+    const paciente = pacientes.find(p => p.id === pacienteId)
+    const notasFinal = paciente
+      ? `${paciente.nombre}${notas ? " | " + notas : ""}`
+      : notas
+
+    const { error } = await supabase.from("citas").insert([
+      {
+        paciente_id: pacienteId || null,
+        fecha,
+        hora: hora + ":00",
+        notas: notasFinal,
+        estado: "programada"
+      }
+    ])
+
+    if (error) {
+      setMensaje("Error: " + error.message)
+    } else {
+      setMensaje("Cita agendada")
+      setPacienteId("")
+      setFecha("")
+      setHora("")
+      setNotas("")
+      setMostrarForm(false)
+      cargarDatos()
+    }
+    setGuardando(false)
+  }
 
   async function cambiarEstado(id: string, nuevoEstado: string) {
     await supabase.from("citas").update({ estado: nuevoEstado }).eq("id", id)
-    cargarCitas()
+    cargarDatos()
   }
 
   function agregarAlCalendario(cita: any) {
     const titulo = "Cita Fisio-TRQ"
     const descripcion = cita.notas || "Cita de fisioterapia"
-    const fecha = cita.fecha // formato YYYY-MM-DD
-    const hora = cita.hora?.slice(0, 5) || "12:00" // HH:MM
+    const fecha = cita.fecha
+    const hora = cita.hora?.slice(0, 5) || "12:00"
 
-    // Crear fecha de inicio y fin (1 hora)
     const inicio = new Date(`${fecha}T${hora}:00`)
     const fin = new Date(inicio.getTime() + 60 * 60 * 1000)
 
-    // Formato para Google Calendar / iOS
     const formatDate = (d: Date) => {
       return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
     }
 
     const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titulo)}&dates=${formatDate(inicio)}/${formatDate(fin)}&details=${encodeURIComponent(descripcion)}`
-
     window.open(url, "_blank")
   }
 
@@ -66,6 +114,83 @@ export default function CitasPage() {
 
       <div className="max-w-lg mx-auto px-4 py-5 space-y-4">
 
+        {/* Botón agendar */}
+        {!mostrarForm && (
+          <button
+            onClick={() => setMostrarForm(true)}
+            className="w-full bg-emerald-600 text-white py-3.5 rounded-2xl font-medium"
+          >
+            + Agendar cita manual
+          </button>
+        )}
+
+        {/* Formulario */}
+        {mostrarForm && (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border">
+            <h2 className="font-bold text-gray-800 mb-4">Nueva cita</h2>
+            <form onSubmit={crearCita} className="space-y-3">
+              <select
+                value={pacienteId}
+                onChange={(e) => setPacienteId(e.target.value)}
+                className="w-full border rounded-xl px-4 py-3 text-sm"
+              >
+                <option value="">Paciente (opcional)</option>
+                {pacientes.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nombre}</option>
+                ))}
+              </select>
+
+              <input
+                type="date"
+                required
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                className="w-full border rounded-xl px-4 py-3 text-sm"
+              />
+
+              <input
+                type="time"
+                required
+                value={hora}
+                onChange={(e) => setHora(e.target.value)}
+                className="w-full border rounded-xl px-4 py-3 text-sm"
+              />
+
+              <textarea
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                rows={2}
+                placeholder="Notas (opcional)"
+                className="w-full border rounded-xl px-4 py-3 text-sm"
+              />
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMostrarForm(false)}
+                  className="flex-1 border py-3 rounded-xl text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardando}
+                  className="flex-1 bg-emerald-600 text-white py-3 rounded-xl text-sm font-medium disabled:opacity-50"
+                >
+                  {guardando ? "Guardando..." : "Agendar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {mensaje && (
+          <div className={`p-4 rounded-xl text-sm ${mensaje.includes("Error") ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
+            {mensaje}
+          </div>
+        )}
+
+        {/* Lista de citas */}
         {cargando ? (
           <p className="text-center text-gray-500 py-10">Cargando...</p>
         ) : programadas.length === 0 ? (
