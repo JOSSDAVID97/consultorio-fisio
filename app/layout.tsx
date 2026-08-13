@@ -15,6 +15,13 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Fisio-TRQ | Fisioterapia y Quiropraxia",
   description: "Consultorio de fisioterapia en rehabilitación y terapia física. Tadeo García Estrada.",
+  manifest: "/manifest.json",
+  themeColor: "#047857",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Fisio-TRQ",
+  },
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
