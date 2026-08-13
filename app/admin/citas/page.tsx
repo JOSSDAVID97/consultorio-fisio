@@ -29,6 +29,26 @@ export default function CitasPage() {
     cargarCitas()
   }
 
+  function agregarAlCalendario(cita: any) {
+    const titulo = "Cita Fisio-TRQ"
+    const descripcion = cita.notas || "Cita de fisioterapia"
+    const fecha = cita.fecha // formato YYYY-MM-DD
+    const hora = cita.hora?.slice(0, 5) || "12:00" // HH:MM
+
+    // Crear fecha de inicio y fin (1 hora)
+    const inicio = new Date(`${fecha}T${hora}:00`)
+    const fin = new Date(inicio.getTime() + 60 * 60 * 1000)
+
+    // Formato para Google Calendar / iOS
+    const formatDate = (d: Date) => {
+      return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
+    }
+
+    const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titulo)}&dates=${formatDate(inicio)}/${formatDate(fin)}&details=${encodeURIComponent(descripcion)}`
+
+    window.open(url, "_blank")
+  }
+
   const programadas = citas.filter(c => c.estado === "programada")
   const otras = citas.filter(c => c.estado !== "programada")
 
@@ -57,12 +77,8 @@ export default function CitasPage() {
             <div key={cita.id} className="bg-white rounded-2xl p-5 shadow-sm border">
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <p className="font-bold text-gray-800 text-lg">
-                    {cita.fecha}
-                  </p>
-                  <p className="text-emerald-600 font-medium">
-                    {cita.hora?.slice(0, 5)} hrs
-                  </p>
+                  <p className="font-bold text-gray-800 text-lg">{cita.fecha}</p>
+                  <p className="text-emerald-600 font-medium">{cita.hora?.slice(0, 5)} hrs</p>
                 </div>
                 <span className="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">
                   Programada
@@ -75,19 +91,28 @@ export default function CitasPage() {
                 </p>
               )}
 
-              <div className="flex gap-2">
+              <div className="space-y-2">
                 <button
-                  onClick={() => cambiarEstado(cita.id, "completada")}
-                  className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-medium"
+                  onClick={() => agregarAlCalendario(cita)}
+                  className="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium"
                 >
-                  Completada
+                  📅 Agregar al calendario
                 </button>
-                <button
-                  onClick={() => cambiarEstado(cita.id, "cancelada")}
-                  className="flex-1 bg-red-50 text-red-600 py-2.5 rounded-xl text-sm font-medium border border-red-200"
-                >
-                  Cancelar
-                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => cambiarEstado(cita.id, "completada")}
+                    className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-medium"
+                  >
+                    Completada
+                  </button>
+                  <button
+                    onClick={() => cambiarEstado(cita.id, "cancelada")}
+                    className="flex-1 bg-red-50 text-red-600 py-2.5 rounded-xl text-sm font-medium border border-red-200"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
             </div>
           ))
