@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 
-const PASSWORD = "fisio2026" // ← Cambia esta contraseña
+const PASSWORD = "fisioTQR" // ← Cambia esta contraseña
 
 export default function AdminPage() {
   const [autorizado, setAutorizado] = useState(false)
