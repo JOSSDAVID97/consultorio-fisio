@@ -179,7 +179,114 @@ export default function Home() {
           </div>
         </div>
       </section>
+      {/* Acceso al portal del paciente */}
+<section className="max-w-lg mx-auto px-4 pb-8">
+  <div className="bg-white rounded-2xl shadow-sm border p-5">
+    <h3 className="font-bold text-gray-800 text-center mb-1">¿Ya eres paciente?</h3>
+    <p className="text-sm text-gray-500 text-center mb-4">
+      Entra a tu portal personal
+    </p>
 
+    {/* Opción 1: Pegar link */}
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Pega tu link personal
+      </label>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          id="linkPersonal"
+          placeholder="https://.../paciente/..."
+          className="flex-1 border rounded-xl px-3 py-2.5 text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const input = document.getElementById("linkPersonal") as HTMLInputElement
+            const link = input?.value?.trim()
+            if (link && link.includes("/paciente/")) {
+              window.location.href = link
+            } else {
+              alert("Pega un link válido de tu portal")
+            }
+          }}
+          className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium"
+        >
+          Ir
+        </button>
+      </div>
+    </div>
+
+    <div className="flex items-center gap-3 my-4">
+      <div className="flex-1 h-px bg-gray-200"></div>
+      <span className="text-xs text-gray-400">o</span>
+      <div className="flex-1 h-px bg-gray-200"></div>
+    </div>
+
+    {/* Opción 2: Nombre + Teléfono */}
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault()
+        const form = e.target as HTMLFormElement
+        const nombre = (form.elements.namedItem("nombreBuscar") as HTMLInputElement).value.trim()
+        const telefono = (form.elements.namedItem("telefonoBuscar") as HTMLInputElement).value.replace(/\D/g, "")
+
+        if (!nombre || !telefono) return
+
+        const { data } = await supabase
+          .from("pacientes")
+          .select("token_acceso")
+          .ilike("nombre", `%${nombre}%`)
+          .eq("activo", true)
+
+        if (!data || data.length === 0) {
+          alert("No se encontró un paciente con esos datos")
+          return
+        }
+
+        // Buscar coincidencia de teléfono
+        const { data: pacientes } = await supabase
+          .from("pacientes")
+          .select("token_acceso, telefono, nombre")
+          .ilike("nombre", `%${nombre}%`)
+          .eq("activo", true)
+
+        const encontrado = pacientes?.find(p => 
+          p.telefono?.replace(/\D/g, "").includes(telefono) || 
+          telefono.includes(p.telefono?.replace(/\D/g, "") || "")
+        )
+
+        if (encontrado) {
+          window.location.href = `/paciente/${encontrado.token_acceso}`
+        } else {
+          alert("No se encontró coincidencia con ese nombre y teléfono")
+        }
+      }}
+      className="space-y-3"
+    >
+      <input
+        type="text"
+        name="nombreBuscar"
+        required
+        placeholder="Tu nombre"
+        className="w-full border rounded-xl px-3 py-2.5 text-sm"
+      />
+      <input
+        type="tel"
+        name="telefonoBuscar"
+        required
+        placeholder="Tu WhatsApp"
+        className="w-full border rounded-xl px-3 py-2.5 text-sm"
+      />
+      <button
+        type="submit"
+        className="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium"
+      >
+        Buscar mi portal
+      </button>
+    </form>
+  </div>
+</section>
       {/* Reservar */}
       <section id="reservar" className="max-w-lg mx-auto px-4 pb-16">
         <div className="bg-white p-5 rounded-2xl shadow-md border">
