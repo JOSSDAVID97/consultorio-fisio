@@ -1,8 +1,8 @@
 {
-  "name": "Fisio-TRQ Admin",
+  "name": "Fisio-TRQ",
   "short_name": "Fisio-TRQ",
-  "description": "Panel de administración Fisio-TRQ",
-  "start_url": "/admin",
+  "description": "Fisioterapia y Quiropraxia - Agenda tu cita y ve ejercicios",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#047857",
   "theme_color": "#047857",
